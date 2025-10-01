@@ -271,7 +271,7 @@ async function handleSubmit(event) {
     state.phase = envelope.phase;
     state.memory = envelope.memorySnapshot || {};
     if (Array.isArray(state.memory.collecte?.thematiques)) {
-      syncThematics(state.memory.collecte.thematics);
+      syncThematics(state.memory.collecte.thematiques);
     }
     pushMessage('assistant', envelope.assistantMarkdown);
     if (envelope.phase === 'final' && envelope.finalMarkdownPresent) {
