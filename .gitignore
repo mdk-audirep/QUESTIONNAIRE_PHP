@@ -1,0 +1,13 @@
+/vendor/
+/.env
+/.DS_Store
+/npm-debug.log*
+/yarn-debug.log*
+/yarn-error.log*
+/.pnpm-debug.log*
+/composer.lock
+/storage/*.json
+/storage/*.cache
+/node_modules
+/client
+/server
