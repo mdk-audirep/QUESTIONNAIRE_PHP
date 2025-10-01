@@ -223,10 +223,11 @@ function buildMemoryDelta() {
 }
 
 async function callApi(endpoint, body) {
+  const payload = { ...body, action: endpoint };
   const response = await fetch(`api.php?action=${endpoint}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
+    body: JSON.stringify(payload)
   });
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: 'Erreur réseau' }));

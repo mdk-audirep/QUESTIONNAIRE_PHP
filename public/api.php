@@ -2,14 +2,12 @@
 
 declare(strict_types=1);
 
-use InvalidArgumentException;
 use Questionnaire\Support\Env;
 use Questionnaire\Support\MissingConfigurationException;
 use Questionnaire\Support\OpenAIClient;
 use Questionnaire\Support\Prompt;
 use Questionnaire\Support\ResponseFormatter;
 use Questionnaire\Support\SessionStore;
-use RuntimeException;
 
 require __DIR__ . '/../src/bootstrap.php';
 
@@ -17,26 +15,48 @@ header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Headers: Content-Type');
 header('Access-Control-Allow-Methods: POST, OPTIONS');
+header('Allow: POST, OPTIONS');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
     exit;
 }
 
-$input = json_decode(file_get_contents('php://input') ?: '[]', true);
+$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+$rawInput = file_get_contents('php://input') ?: '';
+$input = [];
+
+if ($rawInput !== '') {
+    $decoded = json_decode($rawInput, true);
+    if (json_last_error() !== JSON_ERROR_NONE || !is_array($decoded)) {
+        http_response_code(400);
+        echo json_encode(['message' => 'Corps JSON invalide.']);
+        exit;
+    }
+    $input = $decoded;
+}
+
 $action = $_GET['action'] ?? ($input['action'] ?? null);
+
+if (!$action) {
+    http_response_code(400);
+    echo json_encode(['message' => 'Paramètre action manquant.']);
+    exit;
+}
+
+if ($method !== 'POST') {
+    if ($action === 'health') {
+        respondHealth();
+        exit;
+    }
+
+    http_response_code(405);
+    echo json_encode(['message' => 'Méthode non autorisée. Utilisez POST pour cette action.']);
+    exit;
+}
 
 try {
     switch ($action) {
-        case 'health':
-            echo json_encode([
-                'status' => 'ok',
-                'openaiEnabled' => Env::openAiEnabled(),
-                'missingKeys' => Env::openAiEnabled() ? [] : ['OPENAI_API_KEY', 'VECTOR_STORE_ID'],
-                'promptVersion' => Prompt::VERSION,
-            ]);
-            break;
-
         case 'start':
             responseStart($input);
             break;
@@ -49,6 +69,10 @@ try {
             responseContinue($input, true);
             break;
 
+        case 'health':
+            respondHealth();
+            break;
+
         default:
             http_response_code(404);
             echo json_encode(['message' => 'Route inconnue']);
@@ -56,12 +80,22 @@ try {
 } catch (MissingConfigurationException $exception) {
     http_response_code(503);
     echo json_encode(['message' => 'Configuration manquante : définissez OPENAI_API_KEY et VECTOR_STORE_ID.']);
-} catch (InvalidArgumentException $exception) {
+} catch (\InvalidArgumentException $exception) {
     http_response_code(400);
     echo json_encode(['message' => $exception->getMessage()]);
-} catch (RuntimeException $exception) {
+} catch (\RuntimeException $exception) {
     http_response_code(500);
     echo json_encode(['message' => $exception->getMessage()]);
+}
+
+function respondHealth(): void
+{
+    echo json_encode([
+        'status' => 'ok',
+        'openaiEnabled' => Env::openAiEnabled(),
+        'missingKeys' => Env::openAiEnabled() ? [] : ['OPENAI_API_KEY', 'VECTOR_STORE_ID'],
+        'promptVersion' => Prompt::VERSION,
+    ]);
 }
 
 function validateCommon(array $data, bool $expectSession = false): void
