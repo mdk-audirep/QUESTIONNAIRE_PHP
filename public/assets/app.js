@@ -40,7 +40,12 @@ const state = {
   phase: 'collecte',
   memory: {},
   messages: [],
-  thematics: initialThematics()
+  thematics: initialThematics(),
+  currentQuestionStep: null,
+  showThemes: false,
+  showSubThemes: false,
+  activeThematicId: null,
+  activeThematicLabel: null
 };
 
 const elements = {
@@ -51,10 +56,19 @@ const elements = {
   resetButton: document.getElementById('resetButton'),
   statusBar: document.getElementById('statusBar'),
   thematicContainer: document.getElementById('thematicContainer'),
+  checkboxPanel: document.querySelector('.checkbox-panel'),
   addThematicButton: document.getElementById('addThematicButton'),
   newThematicInput: document.getElementById('newThematicInput'),
   finalMarkdown: document.getElementById('finalMarkdown')
 };
+
+function normalizeText(value) {
+  return value
+    .toString()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
 
 function escapeHtml(text) {
   return text
@@ -85,10 +99,37 @@ function cloneThematics() {
 }
 
 function renderThematics() {
+  const visible = state.showThemes || state.showSubThemes;
+  if (elements.checkboxPanel) {
+    elements.checkboxPanel.classList.toggle('is-hidden', !visible);
+    elements.checkboxPanel.classList.toggle('showing-thematics', state.showThemes && visible);
+    elements.checkboxPanel.classList.toggle('showing-subthemes', state.showSubThemes && visible);
+  }
+
   elements.thematicContainer.innerHTML = '';
-  cloneThematics().forEach((theme) => {
+  if (!visible) {
+    return;
+  }
+
+  let thematicsToRender = cloneThematics();
+  if (state.showSubThemes) {
+    let target = thematicsToRender.find((theme) => theme.id === state.activeThematicId);
+    if (!target && state.activeThematicLabel) {
+      const normalizedLabel = normalizeText(state.activeThematicLabel);
+      target = thematicsToRender.find((theme) => normalizeText(theme.label) === normalizedLabel);
+      if (target) {
+        state.activeThematicId = target.id;
+      }
+    }
+    thematicsToRender = target ? [target] : [];
+  }
+
+  thematicsToRender.forEach((theme) => {
     const card = document.createElement('div');
     card.className = 'thematic';
+    if (state.showSubThemes && state.activeThematicId === theme.id) {
+      card.classList.add('thematic--focused');
+    }
 
     const header = document.createElement('div');
     header.className = 'thematic-header';
@@ -169,6 +210,11 @@ function resetState() {
   state.memory = {};
   state.messages = [];
   state.thematics = initialThematics();
+  state.currentQuestionStep = null;
+  state.showThemes = false;
+  state.showSubThemes = false;
+  state.activeThematicId = null;
+  state.activeThematicLabel = null;
   elements.userInput.value = '';
   elements.finalMarkdown.value = '';
   renderMessages();
@@ -203,6 +249,48 @@ function pushMessage(role, content) {
     : `<p>${escapeHtml(content)}</p>`;
   state.messages.push({ role, content, html });
   renderMessages();
+
+  if (role === 'assistant') {
+    const normalizedContent = normalizeText(content);
+    let hasStateChange = false;
+
+    if (normalizedContent.includes('question 7')) {
+      state.currentQuestionStep = 7;
+      state.showThemes = true;
+      state.showSubThemes = false;
+      state.activeThematicId = null;
+      state.activeThematicLabel = null;
+      hasStateChange = true;
+    } else if (normalizedContent.includes('question 11')) {
+      const thematicMatch = state.thematics.find((theme) =>
+        normalizedContent.includes(normalizeText(theme.label))
+      );
+      state.currentQuestionStep = 11;
+      if (thematicMatch) {
+        state.activeThematicId = thematicMatch.id;
+        state.activeThematicLabel = thematicMatch.label;
+        state.showThemes = false;
+        state.showSubThemes = true;
+      } else {
+        state.activeThematicId = null;
+        state.activeThematicLabel = null;
+        state.showThemes = true;
+        state.showSubThemes = false;
+      }
+      hasStateChange = true;
+    } else if (normalizedContent.includes('question')) {
+      state.currentQuestionStep = null;
+      state.showThemes = false;
+      state.showSubThemes = false;
+      state.activeThematicId = null;
+      state.activeThematicLabel = null;
+      hasStateChange = true;
+    }
+
+    if (hasStateChange) {
+      renderThematics();
+    }
+  }
 }
 
 function buildMemoryDelta() {
@@ -301,6 +389,17 @@ function syncThematics(snapshot) {
       }))
     };
   });
+  if (state.activeThematicLabel) {
+    const normalizedLabel = normalizeText(state.activeThematicLabel);
+    const match = state.thematics.find((theme) => normalizeText(theme.label) === normalizedLabel);
+    if (match) {
+      state.activeThematicId = match.id;
+    } else {
+      state.activeThematicId = null;
+      state.activeThematicLabel = null;
+      state.showSubThemes = false;
+    }
+  }
   renderThematics();
 }
 

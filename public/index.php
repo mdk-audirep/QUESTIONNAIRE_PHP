@@ -26,7 +26,7 @@ require __DIR__ . '/../src/bootstrap.php';
                 <button id="resetButton" type="button">Démarrer / Réinitialiser</button>
                 <p class="hint">Ctrl/⌘+Enter pour envoyer</p>
             </section>
-            <section class="checkbox-panel">
+            <section class="checkbox-panel is-hidden">
                 <h2>Thématiques</h2>
                 <div id="thematicContainer"></div>
                 <div class="add-thematic">
