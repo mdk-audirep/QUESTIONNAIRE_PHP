@@ -10,8 +10,7 @@ require __DIR__ . '/../src/bootstrap.php';
     <link rel="stylesheet" href="assets/styles.css">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js" defer></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/common.min.js" defer></script>
+    <script src="assets/light-highlight.js" defer></script>
     <script>
         window.PROMPT_VERSION = '<?php echo Questionnaire\Support\Prompt::VERSION; ?>';
         window.OPENAI_ENABLED = <?php echo Questionnaire\Support\Env::openAiEnabled() ? 'true' : 'false'; ?>;
