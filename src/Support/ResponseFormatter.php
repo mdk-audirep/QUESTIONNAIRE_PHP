@@ -17,7 +17,9 @@ final class ResponseFormatter
         $buffer = '';
         foreach ($chunks as $chunk) {
             foreach ($chunk['content'] as $content) {
-                if (($content['type'] ?? '') === 'output_text') {
+                $type = $content['type'] ?? '';
+
+                if ($type === 'output_text' || $type === 'output_text_delta') {
                     $buffer .= $content['text'] ?? '';
                 }
             }
