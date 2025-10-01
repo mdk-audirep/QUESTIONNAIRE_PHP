@@ -97,33 +97,21 @@ final class OpenAIClient
 
     public function buildPayload(array $session, string $userMessage, bool $finalOverride = false): array
     {
-        $messages = [];
+        $input = [];
 
         if (empty($session['summary']) && empty($session['recentTurns'])) {
-            $messages[] = [
-                'role' => 'system',
-                'content' => Prompt::systemPrompt()
-            ];
+            $input[] = self::formatMessage('system', Prompt::systemPrompt());
         }
 
         if (!empty($session['summary'])) {
-            $messages[] = [
-                'role' => 'system',
-                'content' => 'Résumé mémoire : ' . $session['summary']
-            ];
+            $input[] = self::formatMessage('system', 'Résumé mémoire : ' . $session['summary']);
         }
 
         foreach ($session['recentTurns'] as $turn) {
-            $messages[] = [
-                'role' => $turn['role'],
-                'content' => $turn['content']
-            ];
+            $input[] = self::formatMessage($turn['role'], (string) $turn['content']);
         }
 
-        $messages[] = [
-            'role' => 'user',
-            'content' => $userMessage
-        ];
+        $input[] = self::formatMessage('user', $userMessage);
 
         $payload = [
             'model' => 'gpt-5-mini',
@@ -134,7 +122,7 @@ final class OpenAIClient
                 ['type' => 'file_search'],
                 ['type' => 'web_search']
             ],
-            'messages' => $messages,
+            'input' => $input,
             'metadata' => [
                 'session_id' => $session['id'],
                 'prompt_version' => $session['promptVersion']
@@ -147,5 +135,20 @@ final class OpenAIClient
         }
 
         return $payload;
+    }
+
+    private static function formatMessage(string $role, string $content): array
+    {
+        $type = $role === 'assistant' ? 'output_text' : 'input_text';
+
+        return [
+            'role' => $role,
+            'content' => [
+                [
+                    'type' => $type,
+                    'text' => $content
+                ]
+            ]
+        ];
     }
 }
