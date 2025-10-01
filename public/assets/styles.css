@@ -77,6 +77,19 @@ body {
     padding-right: 0.5rem;
 }
 
+.checkbox-panel.is-hidden {
+    display: none;
+}
+
+.checkbox-panel.showing-subthemes .thematic--focused {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.4);
+}
+
+.checkbox-panel.showing-subthemes .thematic-header input[type="checkbox"] {
+    opacity: 0.4;
+}
+
 .checkbox-panel h2 {
     margin-top: 0;
     font-size: 1.1rem;
